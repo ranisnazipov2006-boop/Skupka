@@ -12,7 +12,7 @@ app.use(express.json({
 app.use(cors());
 
 // === ВАШИ НАСТРОЙКИ ===
-const CRYPTOBOT_API_TOKEN = '613159:AABqsGHBc6i2Pv8QliDF8nZd46d7YWCjTVh'; // Вставьте ваш токен
+const CRYPTOBOT_API_TOKEN = '613177:AAnXuVFE03h7YQGq4NrKRhLIk9I4my6Nms5'; // Вставьте ваш токен
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api/';
 
 // Временная база данных
