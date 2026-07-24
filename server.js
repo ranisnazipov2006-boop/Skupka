@@ -4,17 +4,19 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
+
+// Настройка для правильной проверки подписи CryptoBot
 app.use(express.json({
     verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(cors());
 
 // === ВАШИ НАСТРОЙКИ ===
-const CRYPTOBOT_API_TOKEN = '613159:AABqsGHBc6i2Pv8QliDF8nZd46d7YWCjTVh'; // Получите в @CryptoBot
+const CRYPTOBOT_API_TOKEN = '613159:AABqsGHBc6i2Pv8QliDF8nZd46d7YWCjTVh'; // Вставьте ваш токен
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api/';
 
-// Временная база данных (в реальном проекте используйте MongoDB/PostgreSQL)
-let usersBalance = { "12345678": 100 }; // Тестовый баланс
+// Временная база данных
+let usersBalance = { "12345678": 100 };
 let usersWithdrawals = {};
 
 async function cryptoBotRequest(method, params = {}) {
@@ -29,7 +31,7 @@ async function cryptoBotRequest(method, params = {}) {
     }
 }
 
-// 1. ЭНДПОИНТ ДЛЯ ВЫВОДА СРЕДСТВ
+// 1. ВЫВОД СРЕДСТВ
 app.post('/api/withdraw', async (req, res) => {
     const { tg_id, amount } = req.body;
 
@@ -70,7 +72,7 @@ app.post('/api/withdraw', async (req, res) => {
     }
 });
 
-// 2. ЭНДПОИНТ ДЛЯ ПОПОЛНЕНИЯ
+// 2. ПОПОЛНЕНИЕ
 app.post('/api/deposit', async (req, res) => {
     const { tg_id, amount } = req.body;
 
@@ -104,6 +106,7 @@ app.post('/api/webhook', (req, res) => {
     }
 
     const update = req.body;
+    
     // Если счет оплачен
     if (update.update_type === 'invoice_paid') {
         const payload = JSON.parse(update.payload.invoice.payload);
@@ -112,28 +115,10 @@ app.post('/api/webhook', (req, res) => {
 
         // Начисляем деньги
         usersBalance[tg_id] = (usersBalance[tg_id] || 0) + amount;
-        console.log(`✅ Пользователь ${tg_id} пополнил баланс на ${amount} USDT`);
+        console.log(`✅ Пользователь ${tg_id} пополнил на ${amount} USDT`);
     }
-    res.send('OK'); // Обязательно отвечаем 200 OK
-});
-    const secret = crypto.createHash('sha256').update(CRYPTOBOT_API_TOKEN).digest();
-    const checkString = JSON.stringify(req.body);
-    const hmac = crypto.createHmac('sha256', secret).update(checkString).digest('hex');
     
-    if (hmac !== req.headers['crypto-pay-api-signature']) {
-        return res.status(401).send('Unauthorized');
-    }
-
-    const update = req.body;
-    if (update.update_type === 'invoice_paid') {
-        const payload = JSON.parse(update.payload.invoice.payload);
-        const tg_id = payload.tg_id;
-        const amount = parseFloat(update.payload.invoice.amount);
-
-        usersBalance[tg_id] = (usersBalance[tg_id] || 0) + amount;
-        console.log(`Пользователь ${tg_id} пополнил на ${amount} USDT`);
-    }
-    res.send('OK');
+    res.send('OK'); // Обязательно отвечаем 200 OK
 });
 
 // Запуск сервера
