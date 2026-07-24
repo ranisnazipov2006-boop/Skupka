@@ -4,7 +4,9 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => { req.rawBody = buf.toString(); }
+}));
 app.use(cors());
 
 // === ВАШИ НАСТРОЙКИ ===
@@ -93,6 +95,27 @@ app.post('/api/deposit', async (req, res) => {
 
 // 3. ВЕБХУК ДЛЯ АВТО-ПОПОЛНЕНИЯ
 app.post('/api/webhook', (req, res) => {
+    // Проверка подписи CryptoBot
+    const secret = crypto.createHash('sha256').update(CRYPTOBOT_API_TOKEN).digest();
+    const hmac = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+    
+    if (hmac !== req.headers['crypto-pay-api-signature']) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    const update = req.body;
+    // Если счет оплачен
+    if (update.update_type === 'invoice_paid') {
+        const payload = JSON.parse(update.payload.invoice.payload);
+        const tg_id = payload.tg_id;
+        const amount = parseFloat(update.payload.invoice.amount);
+
+        // Начисляем деньги
+        usersBalance[tg_id] = (usersBalance[tg_id] || 0) + amount;
+        console.log(`✅ Пользователь ${tg_id} пополнил баланс на ${amount} USDT`);
+    }
+    res.send('OK'); // Обязательно отвечаем 200 OK
+});
     const secret = crypto.createHash('sha256').update(CRYPTOBOT_API_TOKEN).digest();
     const checkString = JSON.stringify(req.body);
     const hmac = crypto.createHmac('sha256', secret).update(checkString).digest('hex');
@@ -115,9 +138,4 @@ app.post('/api/webhook', (req, res) => {
 
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
-// Автоматическая настройка Webhook при запуске
-const WEBHOOK_URL = 'https://skupka-server.onrender.com/api/webhook'; // ЗАМЕНИТЕ НА ВАШУ ССЫЛКУ!
-axios.post('https://pay.crypt.bot/api/createWebhook', { url: WEBHOOK_URL }, {
-    headers: { 'Crypto-Pay-API-Token': CRYPTOBOT_API_TOKEN }
-}).then(res => console.log('Webhook статус:', res.data.ok ? 'Успешно ✅' : 'Ошибка ❌'))
-  .catch(err => console.error('Ошибка Webhook:', err.response?.data || err.message));app.listen(PORT, () => console.log(`Сервер Skupka запущен на порту ${PORT}`));
+app.listen(PORT, () => console.log(`Сервер Skupka запущен на порту ${PORT}`));
