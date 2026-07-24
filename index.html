@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Skupka.com</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050814;
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #00d4ff;
+            --neon-purple: #7000ff;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--bg-dark);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .premium-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(0, 212, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
+                var(--bg-dark);
+        }
+        .noise-texture {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255,255,255,0.05);
+        }
+        .btn-premium {
+            background: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px 0 rgba(0, 212, 255, 0.3);
+            font-weight: 700;
+        }
+        .btn-premium:active { transform: scale(0.97); box-shadow: 0 2px 10px 0 rgba(0, 212, 255, 0.2); }
+        .btn-ghost {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-btn.active {
+            background: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px 0 rgba(0, 212, 255, 0.4);
+        }
+        .modal-bg {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+        }
+        .dropzone {
+            border: 2px dashed rgba(255,255,255,0.15);
+            transition: all 0.3s ease;
+        }
+        .dropzone.dragover {
+            background: rgba(0, 212, 255, 0.05);
+            border-color: var(--neon-blue);
+            transform: scale(1.02);
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .glow-text { text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+        .logo-glow { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6)); }
+    </style>
+</head>
+<body>
+    <div class="premium-bg"></div>
+    <div class="noise-texture"></div>
+
+    <div class="relative z-10 flex flex-col min-h-screen max-w-md mx-auto pb-24 px-4 pt-6">
+        
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-glow">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#00d4ff"/>
+                            <stop offset="1" stop-color="#7000ff"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="5" y="5" width="90" height="90" rx="24" fill="#0B1120" stroke="url(#logoGrad)" stroke-width="2"/>
+                    <path d="M60 35C60 32 56 30 50 30C44 30 40 32 40 35C40 38 44 40 50 40C56 40 60 42 60 45C60 48 56 50 50 50C44 50 40 52 40 55C40 58 44 60 50 60C56 60 60 62 60 65" stroke="url(#logoGrad)" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M40 35V28M40 28L35 33M40 28L45 33" stroke="url(#logoGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M60 65V72M60 72L55 67M60 72L65 67" stroke="url(#logoGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1 class="text-2xl font-extrabold tracking-tight glow-text">Skupka<span class="text-cyan-400">.com</span></h1>
+            </div>
+            <div class="flex space-x-2 glass-card rounded-full p-1.5">
+                <button onclick="switchTab('home')" id="nav-home" class="nav-btn p-3 rounded-full text-sm transition-all"><i class="fas fa-house"></i></button>
+                <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn p-3 rounded-full text-sm transition-all"><i class="fas fa-user"></i></button>
+                <button onclick="switchTab('balance')" id="nav-balance" class="nav-btn p-3 rounded-full text-sm transition-all"><i class="fas fa-wallet"></i></button>
+            </div>
+        </header>
+
+        <main id="content" class="flex-1"></main>
+
+        <footer class="mt-auto pt-8 border-t border-white/5">
+            <div class="flex justify-around items-center text-xs text-gray-400">
+                <button onclick="openModal('offer')" class="flex flex-col items-center hover:text-cyan-400 transition"><i class="fas fa-file-contract mb-1 text-lg"></i> <span data-i18n="offer">Оферта</span></button>
+                <button onclick="openModal('privacy')" class="flex flex-col items-center hover:text-cyan-400 transition"><i class="fas fa-user-shield mb-1 text-lg"></i> <span data-i18n="privacy">Конфид.</span></button>
+                <button onclick="openModal('help')" class="flex flex-col items-center hover:text-cyan-400 transition"><i class="fas fa-circle-question mb-1 text-lg"></i> <span data-i18n="help">Помощь</span></button>
+                <button onclick="openModal('lang')" class="flex flex-col items-center hover:text-cyan-400 transition"><i class="fas fa-language mb-1 text-lg"></i> <span data-i18n="language">Язык</span></button>
+            </div>
+        </footer>
+    </div>
+
+    <div id="modal-container"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor('#050814');
+        tg.setBackgroundColor('#050814');
+
+        // URL ВАШЕГО СЕРВЕРА (замените на свой)
+        const API_URL = 'https://skupka-server.onrender.com/api';
+
+        const i18n = {
+            'ru': { home: "Главная", profile: "Профиль", balance: "Баланс", sell: "Продать", buy: "Купить", back: "Назад", upload_archive: "Загрузка архива", drag_drop: "Перетащите файл (.zip, .rar) сюда", cancel: "Отмена", history: "История операций", withdraw: "Вывод средств", total_payout: "Всего выплачено", archives_sold: "Сдано архивов", reg_date: "Регистрация", help: "Помощь", language: "Язык", privacy: "Конфид.", offer: "Оферта", price_info: "Цена за 1 рабочий аккаунт", rub: "руб", select_lang: "Выберите язык", developer: "Разработчик", support: "Поддержка", withdraw_crypto: "Вывести", cryptobot_info: "CryptoBot — это кошелек в Telegram. Вывод происходит мгновенно без комиссий.", privacy_text: "Мы гарантируем полную анонимность. Файлы удаляются с серверов после проверки в течение 24 часов. Данные не передаются третьим лицам.", offer_text: "1. Использование сервиса означает согласие с правилами. 2. Пользователь обязуется предоставлять легитимные данные. 3. Администрация вправе отказать при подозрении на фрод.", valid_found: "Проверка завершена", invalid_found: "Невалидных", to_payout: "К выплате", cancel_confirm: "Вы уверены, что хотите прекратить действие?", action_canceled: "Действие отменено.", archive_accepted: "Архив принят в работу. Идет проверка...", balance_topped: "Ваш баланс пополнен на", upload_btn: "Загрузить и получить деньги", buy_soon: "Раздел покупки скоро будет доступен!", available: "Доступно к выводу", operations_history: "История операций", upload_error: "Пожалуйста, загрузите архив RAR или ZIP.", select_cat: "Выберите категорию для сделки", close: "Закрыть", yes: "Да", no: "Нет", deposit: "Пополнить", deposit_amount: "Введите сумму пополнения (USDT)", withdraw_amount: "Введите сумму вывода (USDT)" },
+            'en': { home: "Home", profile: "Profile", balance: "Balance", sell: "Sell", buy: "Buy", back: "Back", upload_archive: "Upload Archive", drag_drop: "Drag file (.zip, .rar) here", cancel: "Cancel", history: "Transaction History", withdraw: "Withdraw", total_payout: "Total Payout", archives_sold: "Archives Sold", reg_date: "Registration", help: "Help", language: "Language", privacy: "Privacy", offer: "Offer", price_info: "Price per 1 working account", rub: "RUB", select_lang: "Select Language", developer: "Developer", support: "Support", withdraw_crypto: "Withdraw", cryptobot_info: "CryptoBot is a Telegram wallet. Instant withdrawal with no fees.", privacy_text: "We guarantee full anonymity. Files are deleted from servers after verification within 24 hours. Data is not shared with third parties.", offer_text: "1. Using the service means agreement with the rules. 2. The user undertakes to provide legitimate data. 3. Administration may refuse if fraud is suspected.", valid_found: "Check completed", invalid_found: "Invalid", to_payout: "To payout", cancel_confirm: "Are you sure you want to cancel?", action_canceled: "Action canceled.", archive_accepted: "Archive accepted for processing. Checking...", balance_topped: "Your balance has been topped up by", upload_btn: "Upload and get paid", buy_soon: "Purchase section coming soon!", available: "Available for withdrawal", operations_history: "Operations History", upload_error: "Please upload a RAR or ZIP archive.", select_cat: "Select a category to deal", close: "Close", yes: "Yes", no: "No", deposit: "Deposit", deposit_amount: "Enter deposit amount (USDT)", withdraw_amount: "Enter withdrawal amount (USDT)" },
+            'uk': { home: "Головна", profile: "Профіль", balance: "Баланс", sell: "Продати", buy: "Купити", back: "Назад", upload_archive: "Завантаження архіву", drag_drop: "Перетягніть файл (.zip, .rar) сюди", cancel: "Скасувати", history: "Історія операцій", withdraw: "Виведення коштів", total_payout: "Всього виплачено", archives_sold: "Здано архівів", reg_date: "Реєстрація", help: "Допомога", language: "Мова", privacy: "Конфід.", offer: "Оферта", price_info: "Ціна за 1 робочий акаунт", rub: "грн", select_lang: "Виберіть мову", developer: "Розробник", support: "Підтримка", withdraw_crypto: "Вивести", cryptobot_info: "CryptoBot — це гаманець у Telegram. Виведення відбувається миттєво без комісій.", privacy_text: "Ми гарантуємо повну анонімність. Файли видаляються з серверів після перевірки протягом 24 годин. Дані не передаються третім особам.", offer_text: "1. Використання сервісу означає згоду з правилами. 2. Користувач зобов'язується надавати легітимні дані. 3. Адміністрація має право відмовити при підозрі на фрод.", valid_found: "Перевірку завершено", invalid_found: "Невалідних", to_payout: "До виплати", cancel_confirm: "Ви впевнені, що хочете припинити дію?", action_canceled: "Дію скасовано.", archive_accepted: "Архів прийнято в роботу. Триває перевірка...", balance_topped: "Ваш баланс поповнено на", upload_btn: "Завантажити та отримати гроші", buy_soon: "Розділ покупки скоро буде доступний!", available: "Доступно до виведення", operations_history: "Історія операцій", upload_error: "Будь ласка, завантажте архів RAR або ZIP.", select_cat: "Виберіть категорію для угоди", close: "Закрити", yes: "Так", no: "Ні", deposit: "Поповнити", deposit_amount: "Введіть суму поповнення (USDT)", withdraw_amount: "Введіть суму виведення (USDT)" },
+            'kz': { home: "Басты бет", profile: "Профиль", balance: "Баланс", sell: "Сату", buy: "Сатып алу", back: "Артқа", upload_archive: "Мұрағатты жүктеу", drag_drop: "Файлды (.zip, .rar) осы жерге тартыңыз", cancel: "Бас тарту", history: "Операциялар тарихы", withdraw: "Қаражатты шығару", total_payout: "Барлығы төленген", archives_sold: "Тапсырылған мұрағаттар", reg_date: "Тіркеу", help: "Көмек", language: "Тіл", privacy: "Құпиялық", offer: "Ұсыныс", price_info: "1 жұмыс істейтін аккаунт бағасы", rub: "тңг", select_lang: "Тілді таңдаңыз", developer: "Әзірлеуші", support: "Қолдау", withdraw_crypto: "Шығару", cryptobot_info: "CryptoBot — Telegram-дағы әмиян. Комиссиясыз жедел шығару.", privacy_text: "Біз толық анонимділікті кепілдейміз. Файлдар тексеруден кейін 24 сағат ішінде жойылады. Деректер үшінші тұлғаларға берілмейді.", offer_text: "1. Қызметті пайдалану ережулермен келісуді білдіреді. 2. Пайдаланушы заңды деректерді ұсынуға міндеттенеді. 3. Әкімшілік фрод күдіктенсе бас тарта алады.", valid_found: "Тексеру аяқталды", invalid_found: "Жарамсыз", to_payout: "Төлемге", cancel_confirm: "Әрекетті тоқтатқыңыз келе ме?", action_canceled: "Әрекет тоқтатылды.", archive_accepted: "Мұрағат жұмысқа қабылданды. Тексеру жүріп жатыр...", balance_topped: "Балансыңыз толтырылды", upload_btn: "Жүктеу және ақша алу", buy_soon: "Сатып алу бөлімі жақын арада!", available: "Шығаруға қолжетімді", operations_history: "Операциялар тарихы", upload_error: "RAR немесе ZIP мұрағатын жүктеңіз.", select_cat: "Мәміле жасау үшін санатты таңдаңыз", close: "Жабу", yes: "Иә", no: "Жоқ", deposit: "Толтыру", deposit_amount: "Толтыру сомасын енгізіңіз (USDT)", withdraw_amount: "Шығару сомасын енгізіңіз (USDT)" }
+        };
+
+        let state = {
+            tab: 'home',
+            category: null,
+            balance: 0,
+            currency: 'RUB',
+            rates: { 'RUB': 1, 'USD': 0.011, 'KZT': 5.5 },
+            archives_sold: 12,
+            total_payout: 600,
+            history: [
+                { type: 'deposit', amount: 150, date: '12.05.2026' },
+                { type: 'withdraw', amount: 50, date: '10.05.2026' }
+            ],
+            user: { id: tg.initDataUnsafe?.user?.id || 12345678, name: tg.initDataUnsafe?.user?.first_name || 'User', reg_date: '01.01.2026' },
+            lang: 'ru'
+        };
+
+        try {
+            const savedLang = localStorage.getItem('lang');
+            if (savedLang && i18n[savedLang]) state.lang = savedLang;
+        } catch (e) {}
+
+        const t = (key) => i18n[state.lang][key] || i18n['ru'][key] || key;
+
+        const categories = {
+            telegram: { name: {ru:'Telegram', en:'Telegram', uk:'Telegram', kz:'Telegram'}, icon: 'fab fa-telegram', color: '#0088cc', formats: 'TDATA / Session' },
+            vk: { name: {ru:'ВКонтакте', en:'VK', uk:'ВКонтакте', kz:'VK'}, icon: 'fab fa-vk', color: '#0077FF', formats: 'Cookies' },
+            discord: { name: {ru:'Дискорд', en:'Discord', uk:'Discord', kz:'Discord'}, icon: 'fab fa-discord', color: '#5865F2', formats: 'Tokens' },
+            cookie: { name: {ru:'Куки', en:'Cookies', uk:'Кукі', kz:'Cookies'}, icon: 'fas fa-cookie-bite', color: '#d2691e', formats: 'Cookies' }
+        };
+
+        function render() {
+            const content = document.getElementById('content');
+            if (!content) return;
+            content.innerHTML = '';
+            if (state.tab === 'home') renderHome(content);
+            if (state.tab === 'profile') renderProfile(content);
+            if (state.tab === 'balance') renderBalance(content);
+            
+            ['home', 'profile', 'balance'].forEach(t => {
+                const el = document.getElementById(`nav-${t}`);
+                if (el) el.classList.toggle('active', state.tab === t);
+            });
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.getAttribute('data-i18n'));
+            });
+        }
+
+        function renderHome(c) {
+            if (!state.category) {
+                let html = `<div class="fade-in"><h2 class="text-3xl font-extrabold mb-1">${t('home')}</h2><p class="text-gray-400 mb-6">${t('select_cat')}</p><div class="grid grid-cols-2 gap-4">`;
+                Object.keys(categories).forEach(key => {
+                    html += `<div onclick="selectCategory('${key}')" class="glass-card p-5 rounded-3xl cursor-pointer hover:bg-white/5 transition-all hover:scale-[1.02]">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style="background: ${categories[key].color}20; box-shadow: 0 0 20px ${categories[key].color}30">
+                            <i class="${categories[key].icon} text-3xl" style="color: ${categories[key].color}"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">${categories[key].name[state.lang]}</h3>
+                        <p class="text-xs text-gray-400 mt-1">${categories[key].formats}</p>
+                    </div>`;
+                });
+                html += `</div></div>`;
+                c.innerHTML = html;
+            } else {
+                const cat = categories[state.category];
+                c.innerHTML = `<div class="fade-in">
+                    <button onclick="selectCategory(null)" class="mb-6 text-cyan-400 flex items-center gap-2"><i class="fas fa-arrow-left"></i> ${t('back')}</button>
+                    <div class="glass-card p-8 rounded-3xl text-center relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 w-32 h-32 rounded-full" style="background: ${cat.color}30; filter: blur(40px);"></div>
+                        <div class="relative z-10">
+                            <div class="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center mb-4" style="background: ${cat.color}20;">
+                                <i class="${cat.icon} text-5xl" style="color: ${cat.color}"></i>
+                            </div>
+                            <h2 class="text-2xl font-extrabold mb-2">${cat.name[state.lang]}</h2>
+                            <p class="text-gray-400 mb-6">Формат: <b class="text-white">${cat.formats}</b><br>${t('price_info')}: <b class="text-cyan-400">50 ${t('rub')}</b></p>
+                            <div class="flex gap-3">
+                                <button onclick="startSell()" class="btn-premium flex-1 px-6 py-4 rounded-2xl flex items-center justify-center gap-2"><i class="fas fa-money-bill-trend-up"></i> ${t('sell')}</button>
+                                <button onclick="tg.showAlert('${t('buy_soon')}')" class="btn-ghost flex-1 px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2"><i class="fas fa-shopping-cart"></i> ${t('buy')}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
+
+        function renderProfile(c) {
+            c.innerHTML = `<div class="fade-in">
+                <h2 class="text-3xl font-extrabold mb-6">${t('profile')}</h2>
+                <div class="glass-card p-6 rounded-3xl mb-6 relative overflow-hidden">
+                    <div class="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-cyan-500/20 filter blur-2xl"></div>
+                    <div class="relative z-10 flex items-center mb-6">
+                        <div class="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center text-3xl font-extrabold mr-4 shadow-lg shadow-cyan-500/30">${state.user.name[0]}</div>
+                        <div>
+                            <h3 class="text-xl font-bold">${state.user.name}</h3>
+                            <p class="text-gray-400 text-sm flex items-center gap-2"><i class="fas fa-hashtag text-xs"></i> ${state.user.id}</p>
+                            <p class="text-gray-400 text-sm flex items-center gap-2"><i class="fas fa-calendar-alt text-xs"></i> ${t('reg_date')}: ${state.user.reg_date}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <p class="text-2xl font-extrabold text-cyan-400">${state.archives_sold}</p>
+                            <p class="text-xs text-gray-400 mt-1">${t('archives_sold')}</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <p class="text-2xl font-extrabold text-green-400">${state.total_payout} ₽</p>
+                            <p class="text-xs text-gray-400 mt-1">${t('total_payout')}</p>
+                        </div>
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold mb-3 flex items-center gap-2"><i class="fas fa-history text-cyan-400"></i> ${t('history')}</h3>
+                <div class="glass-card p-4 rounded-3xl space-y-4">
+                    ${state.history.map(h => `<div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center ${h.type === 'deposit' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}">
+                                <i class="fas ${h.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm">${h.type === 'deposit' ? t('sell') : t('withdraw')}</p>
+                                <p class="text-xs text-gray-500">${h.date}</p>
+                            </div>
+                        </div>
+                        <p class="font-bold ${h.type === 'deposit' ? 'text-green-400' : 'text-red-400'}">${h.type === 'deposit' ? '+' : '-'}${h.amount} ₽</p>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        function renderBalance(c) {
+            const convertedBalance = (state.balance * state.rates[state.currency]).toFixed(2);
+            const symbol = { 'RUB': '₽', 'USD': '$', 'KZT': '₸' }[state.currency];
+            
+            c.innerHTML = `<div class="fade-in">
+                <h2 class="text-3xl font-extrabold mb-6">${t('balance')}</h2>
+                <div class="glass-card p-8 rounded-3xl text-center mb-6 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-cyan-500/10 to-transparent"></div>
+                    <div class="relative z-10">
+                        <p class="text-gray-400 text-sm uppercase tracking-wider mb-2">${t('available')}</p>
+                        <h3 class="text-5xl font-extrabold tracking-tight glow-text">${convertedBalance} ${symbol}</h3>
+                        <div class="flex justify-center gap-2 my-6">
+                            ${Object.keys(state.rates).map(cur => `<button onclick="changeCurrency('${cur}')" class="px-5 py-2 rounded-xl font-bold text-sm transition-all ${state.currency === cur ? 'btn-premium' : 'btn-ghost'}">${cur}</button>`).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-3xl mb-6">
+                    <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-arrow-down text-cyan-400"></i> ${t('withdraw')}</h3>
+                    
+                    <div class="mb-4">
+                        <button onclick="depositCrypto()" class="btn-premium w-full p-4 rounded-2xl flex items-center justify-center gap-2">
+                            <i class="fas fa-arrow-down"></i> ${t('deposit')} (CryptoBot)
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-robot text-blue-400 text-xl"></i>
+                            <div>
+                                <span class="font-medium">Вывести на CryptoBot (USDT)</span>
+                                <i class="fas fa-circle-info text-gray-500 text-xs ml-2 cursor-pointer" onclick="tg.showAlert('${t('cryptobot_info')}')"></i>
+                            </div>
+                        </div>
+                        <button onclick="withdrawCrypto()" class="btn-ghost px-4 py-2 rounded-xl font-bold text-sm text-cyan-400">${t('withdraw_crypto')}</button>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-cyan-400"></i> ${t('operations_history')}</h3>
+                <div class="glass-card p-4 rounded-3xl space-y-3">
+                    ${state.history.map(h => `<div class="flex justify-between items-center border-b border-white/5 pb-3 last:border-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center ${h.type === 'deposit' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}">
+                                <i class="fas ${h.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm">${h.type === 'deposit' ? t('sell') : t('withdraw')}</p>
+                                <p class="text-xs text-gray-500">${h.date}</p>
+                            </div>
+                        </div>
+                        <p class="font-bold ${h.type === 'deposit' ? 'text-green-400' : 'text-red-400'}">${h.type === 'deposit' ? '+' : '-'}${h.amount} ₽</p>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        function switchTab(tab) { state.tab = tab; state.category = null; render(); }
+        function selectCategory(cat) { state.category = cat; render(); }
+        function changeCurrency(cur) { state.currency = cur; render(); }
+        function changeLanguage(lang) { state.lang = lang; try { localStorage.setItem('lang', lang); } catch (e) {} render(); closeModal(); }
+        function startSell() { openModal('upload'); }
+
+        // === ЛОГИКА CRYPTOBOT ===
+        async function withdrawCrypto() {
+            const amountStr = prompt(t('withdraw_amount'));
+            if (!amountStr) return;
+            const amount = parseFloat(amountStr);
+            if (isNaN(amount) || amount <= 0) { tg.showAlert('Error'); return; }
+
+            tg.showPopup({ message: 'Processing...', buttons: [{type: 'close'}] });
+            try {
+                const response = await fetch(`${API_URL}/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tg_id: state.user.id, amount: amount })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    state.balance -= amount; 
+                    state.history.unshift({ type: 'withdraw', amount: amount, date: new Date().toLocaleDateString('ru-RU') });
+                    render();
+                    tg.showAlert(`✅ ${amount} USDT sent to your CryptoBot.`);
+                } else {
+                    tg.showAlert(`❌ Error: ${data.error || 'Unknown'}`);
+                }
+            } catch (error) { tg.showAlert('❌ Network Error'); }
+        }
+
+        async function depositCrypto() {
+            const amountStr = prompt(t('deposit_amount'));
+            if (!amountStr) return;
+            const amount = parseFloat(amountStr);
+            if (isNaN(amount) || amount <= 0) { tg.showAlert('Error'); return; }
+
+            try {
+                const response = await fetch(`${API_URL}/deposit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tg_id: state.user.id, amount: amount })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    tg.openInvoice(data.pay_url); 
+                } else { tg.showAlert('❌ Invoice Error'); }
+            } catch (error) { tg.showAlert('❌ Network Error'); }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dz = document.getElementById('dropzone');
+            if(dz) dz.classList.add('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+        }
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) processFile(e.target.files[0]);
+        }
+        function processFile(file) {
+            const isArchive = file.name.endsWith('.zip') || file.name.endsWith('.rar');
+            if (!isArchive) { tg.showAlert(t('upload_error')); return; }
+            closeModal();
+            tg.showAlert("✅ " + t('archive_accepted'));
+            setTimeout(() => {
+                const valid = Math.floor(Math.random() * 5) + 1;
+                const invalid = Math.floor(Math.random() * 3);
+                const payout = valid * 50;
+                tg.showPopup({
+                    title: "✅ " + t('valid_found'),
+                    message: `${t('valid_found')}: ${valid}\n${t('invalid_found')}: ${invalid}\n\n${t('to_payout')}: ${payout} ₽`,
+                    buttons: [{ id: 'cancel', type: 'cancel', text: t('cancel') }, { id: 'ok', type: 'ok', text: t('upload_btn') }]
+                }, (btn) => {
+                    if (btn === 'ok') {
+                        state.balance += payout;
+                        state.archives_sold += 1;
+                        state.total_payout += payout;
+                        state.history.unshift({ type: 'deposit', amount: payout, date: new Date().toLocaleDateString('ru-RU') });
+                        tg.showAlert("💰 " + t('balance_topped') + " " + payout + " ₽!");
+                        switchTab('balance');
+                    } else {
+                        tg.showPopup({
+                            message: t('cancel_confirm'),
+                            buttons: [{ id: 'no', type: 'cancel', text: t('no') }, { id: 'yes', type: 'destructive', text: t('yes') }]
+                        }, (b) => { if (b === 'yes') tg.showAlert(t('action_canceled')); });
+                    }
+                });
+            }, 2500);
+        }
+
+        function openModal(type) {
+            const container = document.getElementById('modal-container');
+            let content = '';
+            if (type === 'upload') {
+                content = `<div class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">
+                    <div class="glass-card p-8 rounded-3xl w-full max-w-sm fade-in" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-2 text-center"><i class="fas fa-cloud-arrow-up mr-2 text-cyan-400"></i>${t('upload_archive')}</h3>
+                        <label id="dropzone" class="dropzone block w-full h-48 rounded-2xl flex flex-col items-center justify-center cursor-pointer mt-4" ondragover="handleDrop(event)" ondrop="handleDrop(event)" ondragleave="this.classList.remove('dragover')">
+                            <i class="fas fa-file-archive text-5xl text-cyan-400 mb-3"></i>
+                            <span class="text-gray-400 text-sm text-center px-4">${t('drag_drop')}</span>
+                            <input type="file" class="hidden" accept=".zip,.rar" onchange="handleFileSelect(event)">
+                        </label>
+                        <button onclick="closeModal()" class="mt-6 w-full btn-ghost p-4 rounded-2xl font-bold">${t('cancel')}</button>
+                    </div>
+                </div>`;
+            } else if (type === 'help') {
+                content = `<div class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">
+                    <div class="glass-card p-8 rounded-3xl w-full max-w-sm fade-in" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-6 text-center"><i class="fas fa-headset mr-2 text-cyan-400"></i> ${t('help')}</h3>
+                        <div class="space-y-4">
+                            <a href="#" class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl">
+                                <i class="fas fa-user-tie text-cyan-400 text-xl w-8 text-center"></i>
+                                <div><p class="font-bold">${t('developer')}</p><p class="text-gray-400 text-sm">@dev_skupka</p></div>
+                            </a>
+                            <a href="#" class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl">
+                                <i class="fas fa-life-ring text-cyan-400 text-xl w-8 text-center"></i>
+                                <div><p class="font-bold">${t('support')}</p><p class="text-gray-400 text-sm">@support_skupka</p></div>
+                            </a>
+                        </div>
+                        <button onclick="closeModal()" class="mt-6 w-full btn-premium p-4 rounded-2xl">${t('close')}</button>
+                    </div>
+                </div>`;
+            } else if (type === 'lang') {
+                const langs = { 'ru': '🇷🇺 Русский', 'en': '🇬🇧 English', 'uk': '🇺🇦 Українська', 'kz': '🇰🇿 Қазақша' };
+                let langList = '';
+                Object.keys(langs).forEach(l => {
+                    langList += `<button onclick="changeLanguage('${l}')" class="w-full text-left p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition flex justify-between items-center ${state.lang === l ? 'border border-cyan-400' : ''}">
+                        <span class="font-medium">${langs[l]}</span>
+                        ${state.lang === l ? '<i class="fas fa-check-circle text-cyan-400"></i>' : ''}
+                    </button>`;
+                });
+                content = `<div class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">
+                    <div class="glass-card p-8 rounded-3xl w-full max-w-sm fade-in" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-6 text-center"><i class="fas fa-globe mr-2 text-cyan-400"></i> ${t('select_lang')}</h3>
+                        <div class="space-y-2">${langList}</div>
+                        <button onclick="closeModal()" class="mt-6 w-full btn-ghost p-4 rounded-2xl font-bold">${t('cancel')}</button>
+                    </div>
+                </div>`;
+            } else if (type === 'privacy') {
+                content = `<div class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">
+                    <div class="glass-card p-8 rounded-3xl w-full max-w-sm max-h-[80vh] overflow-y-auto fade-in" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-4 text-center"><i class="fas fa-user-shield mr-2 text-cyan-400"></i> ${t('privacy')}</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">${t('privacy_text')}</p>
+                        <button onclick="closeModal()" class="mt-6 w-full btn-premium p-4 rounded-2xl">OK</button>
+                    </div>
+                </div>`;
+            } else if (type === 'offer') {
+                content = `<div class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">
+                    <div class="glass-card p-8 rounded-3xl w-full max-w-sm max-h-[80vh] overflow-y-auto fade-in" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-bold mb-4 text-center"><i class="fas fa-file-contract mr-2 text-cyan-400"></i> ${t('offer')}</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">${t('offer_text')}</p>
+                        <button onclick="closeModal()" class="mt-6 w-full btn-premium p-4 rounded-2xl">OK</button>
+                    </div>
+                </div>`;
+            }
+            container.innerHTML = content;
+        }
+
+        function closeModal() { 
+            const container = document.getElementById('modal-container');
+            if(container) container.innerHTML = ''; 
+        }
+
+        render();
+    </script>
+</body>
+</html>
