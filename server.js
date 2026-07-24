@@ -4,20 +4,32 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
-
-// Настройка для правильной проверки подписи CryptoBot
-app.use(express.json({
-    verify: (req, res, buf) => { req.rawBody = buf.toString(); }
-}));
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf.toString(); } }));
 app.use(cors());
 
-// === ВАШИ НАСТРОЙКИ ===
-const CRYPTOBOT_API_TOKEN = '613177:AAnXuVFE03h7YQGq4NrKRhLIk9I4my6Nms5'; // Вставьте ваш токен
+const CRYPTOBOT_API_TOKEN = '613177:AAnXuVFE03h7YQGq4NrKRhLIk9I4my6Nms5'; // ВАШ ТОКЕН
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api/';
 
+// Прайсы за 1 валидный аккаунт
+const PRICES = { telegram: 50, vk: 30, discord: 10, cookie: 1 };
+
 // Временная база данных
-let usersBalance = { "12345678": 100 };
-let usersWithdrawals = {};
+const db = {
+    users: {},
+    getUser(tg_id, name) {
+        if (!this.users[tg_id]) {
+            this.users[tg_id] = {
+                name: name || 'User',
+                balance: 0,
+                archives_sold: 0,
+                total_payout: 0,
+                history: [],
+                reg_date: new Date().toLocaleDateString('ru-RU')
+            };
+        }
+        return this.users[tg_id];
+    }
+};
 
 async function cryptoBotRequest(method, params = {}) {
     try {
@@ -31,60 +43,42 @@ async function cryptoBotRequest(method, params = {}) {
     }
 }
 
-// 1. ВЫВОД СРЕДСТВ
-app.post('/api/withdraw', async (req, res) => {
-    const { tg_id, amount } = req.body;
-
-    if (!tg_id || !amount || amount <= 0) {
-        return res.status(400).json({ error: 'Неверные данные' });
-    }
-
-    if ((usersBalance[tg_id] || 0) < amount) {
-        return res.status(400).json({ error: 'Недостаточно средств на балансе' });
-    }
-
-    const spendId = `withdraw_${tg_id}_${Date.now()}`;
-    if (usersWithdrawals[spendId]) return res.status(400).json({ error: 'Заявка уже обрабатывается' });
-    usersWithdrawals[spendId] = true;
-
-    try {
-        usersBalance[tg_id] -= amount; // Списываем
-
-        const cryptoResponse = await cryptoBotRequest('transfer', {
-            user_id: tg_id,
-            asset: 'USDT',
-            amount: amount,
-            spend_id: spendId,
-            comment: 'Вывод средств с Skupka.com'
-        });
-
-        if (cryptoResponse.ok) {
-            res.json({ success: true });
-        } else {
-            usersBalance[tg_id] += amount; // Возврат
-            delete usersWithdrawals[spendId];
-            res.status(400).json({ error: 'Ошибка CryptoBot: ' + (cryptoResponse.error || 'Неизвестная') });
-        }
-    } catch (error) {
-        usersBalance[tg_id] += amount;
-        delete usersWithdrawals[spendId];
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
-    }
+// 1. Получить данные пользователя
+app.get('/api/getMe', (req, res) => {
+    const tg_id = req.query.tg_id;
+    const name = req.query.name;
+    if (!tg_id) return res.status(400).json({ error: 'No tg_id' });
+    const user = db.getUser(tg_id, name);
+    res.json({ success: true, user });
 });
 
-// 2. ПОПОЛНЕНИЕ
-app.post('/api/deposit', async (req, res) => {
-    const { tg_id, amount } = req.body;
+// 2. Продажа аккаунтов (расчет)
+app.post('/api/sell', (req, res) => {
+    const { tg_id, category, valid_count } = req.body;
+    const user = db.getUser(tg_id);
+    const price = PRICES[category] || 0;
+    const payout = price * valid_count;
 
+    user.balance += payout;
+    user.archives_sold += 1;
+    user.total_payout += payout;
+    user.history.unshift({
+        type: 'deposit', amount: payout, date: new Date().toLocaleDateString('ru-RU'), status: 'Выполнено'
+    });
+
+    res.json({ success: true, payout, balance: user.balance });
+});
+
+// 3. Пополнение
+app.post('/api/deposit', async (req, res) => {
+    const { tg_id, asset, amount } = req.body;
     try {
         const cryptoResponse = await cryptoBotRequest('createInvoice', {
-            asset: 'USDT',
-            amount: amount,
-            description: 'Пополнение баланса Skupka.com',
+            asset: asset, amount: amount,
+            description: `Пополнение баланса Skupka.com (${asset})`,
             payload: JSON.stringify({ action: 'deposit', tg_id: tg_id }),
             expires_in: 3600 
         });
-
         if (cryptoResponse.ok) {
             res.json({ success: true, pay_url: cryptoResponse.result.bot_invoice_url });
         } else {
@@ -95,32 +89,47 @@ app.post('/api/deposit', async (req, res) => {
     }
 });
 
-// 3. ВЕБХУК ДЛЯ АВТО-ПОПОЛНЕНИЯ
+// 4. Вывод средств
+app.post('/api/withdraw', async (req, res) => {
+    const { tg_id, asset, amount, address } = req.body;
+    const user = db.getUser(tg_id);
+
+    if (user.balance < amount) return res.status(400).json({ error: 'Недостаточно средств' });
+
+    // В реальном проекте здесь бы создавалась заявка на вывод в БД.
+    // CryptoBot API не позволяет выводить на произвольные адреса через transfer напрямую без проверки.
+    // Для демонстрации мы списываем баланс и записываем в историю.
+    console.log(`Заявка на вывод: ${amount} ${asset} на адрес ${address} (User: ${tg_id})`);
+
+    user.balance -= amount;
+    user.history.unshift({
+        type: 'withdraw', amount: amount, date: new Date().toLocaleDateString('ru-RU'), status: 'В обработке'
+    });
+
+    res.json({ success: true, balance: user.balance });
+});
+
+// 5. Вебхук
 app.post('/api/webhook', (req, res) => {
-    // Проверка подписи CryptoBot
     const secret = crypto.createHash('sha256').update(CRYPTOBOT_API_TOKEN).digest();
     const hmac = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
-    
-    if (hmac !== req.headers['crypto-pay-api-signature']) {
-        return res.status(401).send('Unauthorized');
-    }
+    if (hmac !== req.headers['crypto-pay-api-signature']) return res.status(401).send('Unauthorized');
 
     const update = req.body;
-    
-    // Если счет оплачен
     if (update.update_type === 'invoice_paid') {
         const payload = JSON.parse(update.payload.invoice.payload);
         const tg_id = payload.tg_id;
         const amount = parseFloat(update.payload.invoice.amount);
-
-        // Начисляем деньги
-        usersBalance[tg_id] = (usersBalance[tg_id] || 0) + amount;
-        console.log(`✅ Пользователь ${tg_id} пополнил на ${amount} USDT`);
+        const user = db.getUser(tg_id);
+        
+        user.balance += amount;
+        user.history.unshift({
+            type: 'deposit', amount: amount, date: new Date().toLocaleDateString('ru-RU'), status: 'Выполнено'
+        });
+        console.log(`✅ Пополнение: ${tg_id} +${amount}`);
     }
-    
-    res.send('OK'); // Обязательно отвечаем 200 OK
+    res.send('OK');
 });
 
-// Запуск сервера
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Сервер Skupka запущен на порту ${PORT}`));
