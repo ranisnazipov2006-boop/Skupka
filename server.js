@@ -115,4 +115,9 @@ app.post('/api/webhook', (req, res) => {
 
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Сервер Skupka запущен на порту ${PORT}`));
+// Автоматическая настройка Webhook при запуске
+const WEBHOOK_URL = 'https://skupka-server.onrender.com/api/webhook'; // ЗАМЕНИТЕ НА ВАШУ ССЫЛКУ!
+axios.post('https://pay.crypt.bot/api/createWebhook', { url: WEBHOOK_URL }, {
+    headers: { 'Crypto-Pay-API-Token': CRYPTOBOT_API_TOKEN }
+}).then(res => console.log('Webhook статус:', res.data.ok ? 'Успешно ✅' : 'Ошибка ❌'))
+  .catch(err => console.error('Ошибка Webhook:', err.response?.data || err.message));app.listen(PORT, () => console.log(`Сервер Skupka запущен на порту ${PORT}`));
